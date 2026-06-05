@@ -21,7 +21,7 @@ import sys
 from huggingface_hub import snapshot_download
 
 
-HF_REPO_ID: str = "adivekar/when-gradients-collide-results"  # placeholder; update after upload
+HF_REPO_ID: str = "adivekar/when-gradients-collide-results"
 
 
 def main() -> None:
