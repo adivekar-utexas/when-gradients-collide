@@ -2,10 +2,10 @@
 WGC: Multi-Objective Prompt Optimization Framework
 
 This package provides a modular framework for optimizing prompts across multiple objectives
-using algorithms like OPRO, GPO, and TextGrad.
+using algorithms like OPRO and TextGrad.
 
 Key Components:
-- algorithm: Core optimization algorithms (OPRO, GPO, TextGrad)
+- algorithm: Core optimization algorithms (OPRO, TextGrad)
 - config: Centralized configuration system (wgc_config)
 - data_structures: Immutable data classes (Task, Batch, PredictionResult, etc.)
 - task_predictor: Generate predictions using task LLM
@@ -18,9 +18,7 @@ Key Components:
 # Base algorithm class
 # Concrete algorithm classes + their co-located components
 from .algorithm import (
-    GPO,
     OPRO,
-    PE2,
     TextGrad,
 )
 
@@ -72,9 +70,7 @@ __all__ = [
     "PromptAlgorithm",
     "should_evaluate_at_step",
     "OPRO",
-    "GPO",
     "TextGrad",
-    "PE2",
     # Configuration
     "wgc_config",
     "temp_config",

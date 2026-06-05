@@ -47,7 +47,7 @@ try:
 except (ImportError, AttributeError):
     pass
 
-from when_gradients_collide.algorithm import GPO, OPRO, PE2, TextGrad
+from when_gradients_collide.algorithm import OPRO, TextGrad
 from when_gradients_collide.config import wgc_config
 from when_gradients_collide.data_input import Dataset
 from when_gradients_collide.data_structures import Task
@@ -854,7 +854,7 @@ class AlgorithmRunner(Worker):
 
         Args:
             dataset: Dataset to run on.
-            algo_name: Algorithm name ("gpo", "opro", "textgrad", "pe2").
+            algo_name: Algorithm name ("opro", "textgrad").
             api_key: API key for LLM service.
             steps: Number of training steps.
             batch_size: Batch size for training.
@@ -867,11 +867,9 @@ class AlgorithmRunner(Worker):
             output_dir: Output directory (auto-generated if None).
             **algo_params: Algorithm-specific hyperparameters passed directly
                 to the algorithm constructor.  Examples:
-                - GPO: ``k=5``, ``trajectory_strategy="relevance"``
                 - OPRO: ``k=20``, ``num_candidates=8``
                 - TextGrad: ``validation_metric="accuracy"``,
                   ``validation_gate_samples=50``
-                - PE2: ``pe2_batch_size=2``, ``max_prompt_tokens=100``
                 Any parameter accepted by the algorithm's constructor can
                 be passed here.  Unknown keys will be rejected by Pydantic
                 validation at construction time.
@@ -896,15 +894,13 @@ class AlgorithmRunner(Worker):
             # temperature overrides in algo_params, those take priority over
             # the class-level defaults.
             algo_cls_map = {
-                "gpo": GPO,
                 "opro": OPRO,
                 "textgrad": TextGrad,
-                "pe2": PE2,
             }
             if algo_name not in algo_cls_map:
                 raise ValueError(
                     f"Unknown algorithm: {algo_name!r}. "
-                    f"Must be 'gpo', 'textgrad', 'opro', or 'pe2'."
+                    f"Must be 'textgrad' or 'opro'."
                 )
             algo_cls = algo_cls_map[algo_name]
 
@@ -945,17 +941,7 @@ class AlgorithmRunner(Worker):
                 "verbosity": verbosity,
             }
 
-            if algo_name == "gpo":
-                algo = algo_cls(
-                    task_llm=task_llm,
-                    optimizer_llm=optimizer_llm,
-                    task_losses=task_losses,
-                    **{
-                        **common_params,
-                        **algo_params,
-                    },
-                )
-            elif algo_name == "textgrad":
+            if algo_name == "textgrad":
                 algo = algo_cls(
                     task_llm=task_llm,
                     gradient_llm=gradient_llm,
@@ -976,21 +962,10 @@ class AlgorithmRunner(Worker):
                         **algo_params,
                     },
                 )
-            elif algo_name == "pe2":
-                algo = algo_cls(
-                    task_llm=task_llm,
-                    gradient_llm=optimizer_llm,
-                    optimizer_llm=optimizer_llm,
-                    task_losses=task_losses,
-                    **{
-                        **common_params,
-                        **algo_params,
-                    },
-                )
             else:
                 raise ValueError(
                     f"Unknown algorithm: {algo_name!r}. "
-                    f"Must be 'gpo', 'textgrad', 'opro', or 'pe2'."
+                    f"Must be 'textgrad' or 'opro'."
                 )
 
             results = algo.train(

@@ -38,9 +38,9 @@ class TestWgcDefaults:
     def test_per_role_max_tokens_defaults(self):
         d = WgcDefaults()
         assert d.task_llm_max_tokens == 256
-        assert d.optimizer_llm_max_tokens == 4096
-        assert d.gradient_llm_max_tokens == 2048
-        assert d.loss_llm_max_tokens == 256
+        assert d.optimizer_llm_max_tokens == 16384
+        assert d.gradient_llm_max_tokens == 8192
+        assert d.loss_llm_max_tokens == 1024
 
     def test_per_role_temperature_defaults(self):
         d = WgcDefaults()
