@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "when-gradients-collide"
+version = "0.1.0"
+description = "Reproduction code for \"When Gradients Collide: Failure Modes of Multi-Objective Prompt Optimization for LLM Judges\""
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+    { name = "Parth Darshan" },
+    { name = "Abhishek Divekar" },
+]
+keywords = ["prompt-optimization", "llm-as-a-judge", "textgrad", "multi-objective"]
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "concurry[all]>=0.13.0",
+    "datasets==4.0.0",
+    "dotenv",
+    "litellm==1.*",
+    "morphic==0.*",
+    "numpy==2.3.4",
+    "openai==2.4.0",
+    "pandas==2.3.3",
+    "pyarrow<21",
+    "pydantic==2.12.3",
+    "scikit-learn==1.7.0",
+    "slowburn[all]>=0.5.3",
+    "fastparquet",
+    "hvplot",
+    "bokeh",
+    "tiktoken==0.9.0",
+    "aiohttp>=3.9.0",
+    "huggingface_hub",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.4.2",
+    "pytest-timeout",
+    "ipykernel",
+    "ipywidgets",
+    "ruff",
+]
+
+[project.scripts]
+wgc-setup-datasets = "when_gradients_collide.expt.setup_datasets:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["when_gradients_collide*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "integration: marks tests requiring real API calls (may cost $)",
+    "unit: marks pure unit tests (no network)",
+]
+timeout = 120
+timeout_method = "thread"
+
+[tool.black]
+line-length = 120
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"

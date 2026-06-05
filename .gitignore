@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment
+.env
+_env
+.venv/
+env/
+venv/
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Pytest
+.pytest_cache/
+.ruff_cache/
+
+# Generated outputs (run locally or download from HuggingFace)
+outputs/
+results/
+data/SummEval/
+data/BRIGHTER/
+data/WildGuard/
+
+# Misc
+*.log
