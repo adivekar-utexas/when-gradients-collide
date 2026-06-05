@@ -51,6 +51,7 @@ from when_gradients_collide.algorithm import OPRO, TextGrad
 from when_gradients_collide.config import wgc_config
 from when_gradients_collide.data_input import Dataset
 from when_gradients_collide.data_structures import Task
+from when_gradients_collide.experiment_config import LLMConfig, LLM_PRESETS
 from when_gradients_collide.prompt_template import PromptTemplate
 from when_gradients_collide.task_predictor import parse_task_response
 
@@ -67,111 +68,11 @@ WINDOW_5H = 5 * 3600
 WINDOW_1W = 7 * 86400
 
 
+# Legacy LLM_CONFIGS for backward compatibility - maps string names to LLMConfig instances
+# New code should use LLMConfig directly or pass llm_config parameter
 LLM_CONFIGS = {
-    "DeepSeek": {
-        "reasoning": False,
-        "provider_order": {},
-
-        # One shared API base for all DeepSeek OpenCode-Go endpoints
-        "api_base": "https://opencode.ai/zen/go/v1",  # "https://adivekar-server.tailfcaae5.ts.net/1c32-018b-e83f/v1",
-        "load_balancing": "RoundRobin",
-        "endpoint_env_vars": ["AG0", "AG1", "AG2", "AG3", "AG4", "AG5"],
-
-        # Per-role model configs (task/optimizer/loss/gradient)
-        "task_model": {
-            "name": "openai/deepseek-v4-flash",
-            "max_calls_5h": 30000,
-            "max_calls_1w": 78000,
-            "budget_5h_usd": 7.0,
-            "max_concurrent": 10,
-            "input_cost_per_token": 0.14 / 1_000_000,
-            "output_cost_per_token": 0.28 / 1_000_000,
-        },
-        "optimizer_model": {
-            "name": "openai/deepseek-v4-pro",
-            "max_calls_5h": 3000,
-            "max_calls_1w": 8000,
-            "budget_5h_usd": 3.0,
-            "max_concurrent": 10,
-            "input_cost_per_token": 0.435 / 1_000_000,
-            "output_cost_per_token": 0.87 / 1_000_000,
-        },
-        "loss_model": {
-            "name": "openai/deepseek-v4-pro",
-            "max_calls_5h": 3000,
-            "max_calls_1w": 8000,
-            "budget_5h_usd": 3.0,
-            "max_concurrent": 10,
-            "input_cost_per_token": 0.435 / 1_000_000,
-            "output_cost_per_token": 0.87 / 1_000_000,
-        },
-        "gradient_model": {
-            "name": "openai/deepseek-v4-pro",
-            "max_calls_5h": 3000,
-            "max_calls_1w": 8000,
-            "budget_5h_usd": 3.0,
-            "max_concurrent": 10,
-            "input_cost_per_token": 0.435 / 1_000_000,
-            "output_cost_per_token": 0.87 / 1_000_000,
-        },
-    },
-
-    "Custom": {
-        "task_model": "openai/openrouter/qwen/qwen3-8b",
-        "optimizer_model": "openai/openrouter/qwen/qwen3-235b-a22b-2507",
-        "loss_model": "openai/openrouter/qwen/qwen3-235b-a22b-2507",
-        "gradient_model": "openai/opencode-go/deepseek-v4-pro",
-        "reasoning": False,
-        "provider_order": {},
-    },
-
-    "claude4.6": {
-        "reasoning": False,
-        "provider_order": {},
-
-        # One shared API base for all DeepSeek OpenCode-Go endpoints
-        "api_base": "http://localhost:20128/v1",  # "https://adivekar-server.tailfcaae5.ts.net/1c32-018b-e83f/v1",
-        "load_balancing": "RoundRobin",
-        "endpoint_env_vars": ["AG0", "AG1", "AG2"],
-
-        # Updated to the "current schema" (per-role dict objects)
-        "task_model": {
-            "name": "openai/openrouter/anthropic/claude-sonnet-4.6",
-            "max_calls_5h": 2000,
-            "max_calls_1w": 5000,
-            "budget_5h_usd": 8.0,
-            "max_concurrent": 10,
-            "input_cost_per_token": 3.0 / 1_000_000,
-            "output_cost_per_token": 15.0 / 1_000_000,
-        },
-        "optimizer_model": {
-            "name": "openai/openrouter/anthropic/claude-sonnet-4.6",
-            "max_calls_5h": 2000,
-            "max_calls_1w": 5000,
-            "budget_5h_usd": 8.0,
-            "max_concurrent": 10,
-            "input_cost_per_token": 3.0 / 1_000_000,
-            "output_cost_per_token": 15.0 / 1_000_000,
-        },
-        "loss_model": {
-            "name": "openai/openrouter/anthropic/claude-sonnet-4.6",
-            "max_calls_5h": 2000,
-            "max_calls_1w": 5000,
-            "budget_5h_usd": 8.0,
-            "max_concurrent": 10,
-            "input_cost_per_token": 3.0 / 1_000_000,
-            "output_cost_per_token": 15.0 / 1_000_000,
-        },
-        "gradient_model": {
-            "name": "openai/openrouter/anthropic/claude-sonnet-4.6",
-            "max_calls_5h": 2000,
-            "max_calls_1w": 5000,
-            "budget_5h_usd": 8.0,
-            "max_concurrent": 10,
-            "input_cost_per_token": 3.0 / 1_000_000,
-            "output_cost_per_token": 15.0 / 1_000_000,
-        },
-    },
+    "DeepSeek": LLM_PRESETS["deepseek"],
+    "claude4.6": LLM_PRESETS["claude"],
 }
 
 REASONING_EXTRA_TOKENS = 2000
@@ -210,47 +111,51 @@ def _endpoint_with_limits(*, endpoint_id, api_key, max_calls_5h, max_calls_1w, b
 
 def build_balancing_pool_from_config(
     *,
-    preset_cfg: dict,
+    llm_config: LLMConfig,
     role: str,  # "task_model" | "optimizer_model" | "loss_model" | "gradient_model"
     max_tokens: int,
     timeout: float,
     temperature: float,
 ):
     """
-    preset_cfg: e.g. LLM_CONFIGS["DeepSeek"]
+    llm_config: LLMConfig instance with endpoints and per-role models
     role: one of "task_model" | "optimizer_model" | "loss_model" | "gradient_model"
     """
-    model_cfg = preset_cfg[role]
-    model_name = model_cfg["name"]
+    model_cfg = getattr(llm_config, role)
+    model_name = model_cfg.name
 
-    endpoints = [
-        _endpoint_with_limits(
-            endpoint_id=env_name,
-            api_key=_require_env(env_name),
-            max_calls_5h=model_cfg["max_calls_5h"],
-            max_calls_1w=model_cfg["max_calls_1w"],
-            budget_5h_usd=model_cfg["budget_5h_usd"],
-            max_concurrent=model_cfg["max_concurrent"],
+    # Build endpoints from the LLMConfig.endpoints dict
+    endpoints = []
+    for endpoint_id, endpoint in llm_config.endpoints.items():
+        # Resolve API key (support ${ENV_VAR} template syntax)
+        api_key = endpoint.api_key
+        if api_key.startswith("${") and api_key.endswith("}"):
+            env_var = api_key[2:-1]
+            api_key = _require_env(env_var)
+        endpoints.append(
+            _endpoint_with_limits(
+                endpoint_id=endpoint.endpoint_id,
+                api_key=api_key,
+                max_calls_5h=endpoint.max_calls_5h,
+                max_calls_1w=endpoint.max_calls_1w,
+                budget_5h_usd=endpoint.budget_5h_usd,
+                max_concurrent=endpoint.max_concurrent,
+            )
         )
-        for env_name in preset_cfg["endpoint_env_vars"]
-    ]
 
-    litellm_params={
-            "extra_body": {"thinking": {"type": "disabled"}},
-        }
+    litellm_params = {
+        "extra_body": {"thinking": {"type": "disabled"}},
+    }
 
     return create_llm(
         model=model_name,
-        api_base=preset_cfg["api_base"],
+        api_base=llm_config.api_base,
         endpoints=endpoints,
-        load_balancing="RoundRobin",
+        load_balancing=llm_config.load_balancing,
         litellm_params=litellm_params,
         max_tokens=max_tokens,
         timeout=timeout,
         temperature=temperature,
-
-        # IMPORTANT: don't error if SlowBurn doesn't know token pricing for this model
-        # on_pricing_unavailable="warn",
     )
 
 def _detect_reasoning_family(model_name: str) -> Optional[str]:
@@ -375,6 +280,19 @@ def _build_retry_config(*, cfg: Any) -> Dict[str, Any]:
 #         shared=True,
 #     )
 
+def _resolve_llm_config(llm: str) -> LLMConfig:
+    """Resolve a string LLM name to an LLMConfig instance.
+
+    Looks up in LLM_CONFIGS first (legacy names), then LLM_PRESETS (new names).
+    """
+    if llm in LLM_CONFIGS:
+        return LLM_CONFIGS[llm]
+    if llm in LLM_PRESETS:
+        return LLM_PRESETS[llm]
+    available = sorted(set(list(LLM_CONFIGS.keys()) + list(LLM_PRESETS.keys())))
+    raise ValueError(f"Unknown LLM: {llm}. Options: {available}")
+
+
 @validate
 def create_task_llm(
     *,
@@ -382,22 +300,20 @@ def create_task_llm(
     reasoning: bool = False,
     temperature: Optional[float] = None,
 ) -> Any:
-    if llm not in LLM_CONFIGS:
-        raise ValueError(f"Unknown LLM: {llm}. Options: {list(LLM_CONFIGS.keys())}")
-    
+    llm_config = _resolve_llm_config(llm)
+
     cfg = wgc_config.defaults
     max_tokens = cfg.task_llm_max_tokens
     timeout = cfg.task_llm_timeout
     resolved_temperature = temperature if temperature is not None else cfg.task_llm_temperature
 
-    config = LLM_CONFIGS[llm]
-    model_name = config["task_model"]["name"]
-    reasoning = config.get("reasoning", False)
+    model_name = llm_config.task_model.name
+    model_reasoning = llm_config.task_model.reasoning
 
     print(f"Task: temp->{resolved_temperature} | max_tokens: {max_tokens} | timeout: {timeout}")
 
     pool = build_balancing_pool_from_config(
-        preset_cfg=config, 
+        llm_config=llm_config,
         role="task_model",
         max_tokens=max_tokens,
         timeout=timeout,
@@ -405,7 +321,7 @@ def create_task_llm(
     )
 
     try:
-        _stamp_prompt_suffix(pool, model_name=model_name, reasoning=reasoning)
+        _stamp_prompt_suffix(pool, model_name=model_name, reasoning=model_reasoning)
     except Exception:
         pass
 
@@ -417,22 +333,20 @@ def create_optimizer_llm(
     llm: str,
     temperature: Optional[float] = None,
 ) -> Any:
-    if llm not in LLM_CONFIGS:
-        raise ValueError(f"Unknown LLM: {llm}. Options: {list(LLM_CONFIGS.keys())}")
-    
+    llm_config = _resolve_llm_config(llm)
+
     cfg = wgc_config.defaults
     max_tokens = cfg.optimizer_llm_max_tokens
     timeout = cfg.optimizer_llm_timeout
     resolved_temperature = temperature if temperature is not None else cfg.optimizer_llm_temperature
 
-    config = LLM_CONFIGS[llm]
-    model_name = config["optimizer_model"]["name"]
-    reasoning = config.get("reasoning", False)
+    model_name = llm_config.optimizer_model.name
+    model_reasoning = llm_config.optimizer_model.reasoning
 
     print(f"Optimizer: temp->{resolved_temperature} | max_tokens: {max_tokens} | timeout: {timeout}")
 
     pool = build_balancing_pool_from_config(
-        preset_cfg=config, 
+        llm_config=llm_config,
         role="optimizer_model",
         max_tokens=max_tokens,
         timeout=timeout,
@@ -440,7 +354,7 @@ def create_optimizer_llm(
     )
 
     try:
-        _stamp_prompt_suffix(pool, model_name=model_name, reasoning=reasoning)
+        _stamp_prompt_suffix(pool, model_name=model_name, reasoning=model_reasoning)
     except Exception:
         pass
 
@@ -452,22 +366,20 @@ def create_gradient_llm(
     llm: str,
     temperature: Optional[float] = None,
 ) -> Any:
-    if llm not in LLM_CONFIGS:
-        raise ValueError(f"Unknown LLM: {llm}. Options: {list(LLM_CONFIGS.keys())}")
-    
+    llm_config = _resolve_llm_config(llm)
+
     cfg = wgc_config.defaults
     max_tokens = cfg.gradient_llm_max_tokens
     timeout = cfg.gradient_llm_timeout
     resolved_temperature = temperature if temperature is not None else cfg.gradient_llm_temperature
 
-    config = LLM_CONFIGS[llm]
-    model_name = config["gradient_model"]["name"]
-    reasoning = config.get("reasoning", False)
+    model_name = llm_config.gradient_model.name
+    model_reasoning = llm_config.gradient_model.reasoning
 
     print(f"Gradient: temp->{resolved_temperature} | max_tokens: {max_tokens} | timeout: {timeout}")
 
     pool = build_balancing_pool_from_config(
-        preset_cfg=config,
+        llm_config=llm_config,
         role="gradient_model",
         max_tokens=max_tokens,
         timeout=timeout,
@@ -475,7 +387,7 @@ def create_gradient_llm(
     )
 
     try:
-        _stamp_prompt_suffix(pool, model_name=model_name, reasoning=reasoning)
+        _stamp_prompt_suffix(pool, model_name=model_name, reasoning=model_reasoning)
     except Exception:
         pass
 
@@ -487,22 +399,20 @@ def create_loss_llm(
     llm: str,
     temperature: Optional[float] = None,
 ) -> Any:
-    if llm not in LLM_CONFIGS:
-        raise ValueError(f"Unknown LLM: {llm}. Options: {list(LLM_CONFIGS.keys())}")
-
-    config = LLM_CONFIGS[llm]
-    model_name = config["loss_model"]["name"]
-    reasoning = config.get("reasoning", False)
+    llm_config = _resolve_llm_config(llm)
 
     cfg = wgc_config.defaults
     max_tokens = cfg.loss_llm_max_tokens
     timeout = cfg.loss_llm_timeout
     resolved_temperature = temperature if temperature is not None else cfg.loss_llm_temperature
 
+    model_name = llm_config.loss_model.name
+    model_reasoning = llm_config.loss_model.reasoning
+
     print(f"Loss: temp->{resolved_temperature} | max_tokens: {max_tokens} | timeout: {timeout}")
 
     pool = build_balancing_pool_from_config(
-        preset_cfg=config,
+        llm_config=llm_config,
         role="loss_model",
         max_tokens=max_tokens,
         timeout=timeout,
@@ -510,7 +420,7 @@ def create_loss_llm(
     )
 
     try:
-        _stamp_prompt_suffix(pool, model_name=model_name, reasoning=reasoning)
+        _stamp_prompt_suffix(pool, model_name=model_name, reasoning=model_reasoning)
     except Exception:
         pass
 
