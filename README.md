@@ -7,6 +7,8 @@ Abhishek Divekar*, Parth Darshan* (*equal contribution*)
 
 - arXiv: https://arxiv.org/abs/2605.26046
 
+- ![Decomposition modes and pipeline architecture](img/overview.jpg)
+
 ---
 
 ## Overview
@@ -44,8 +46,6 @@ A **decomposition mode** controls whether each pipeline stage operates **per-tas
 ---
 
 ## Architecture Diagram
-
-![Decomposition modes and pipeline architecture](img/overview.jpg)
 
 ---
 
@@ -106,13 +106,18 @@ Example (adjust flags/paths to match your code):
 
 ## Citation
 
-    @article{divekar2026when,
-      title={When Gradients Collide: Failure Modes in Multi-Criteria LLM Judge Prompt Optimization},
-      author={Divekar, Abhishek and Darshan, Parth},
-      journal={arXiv preprint arXiv:2605.26046},
-      year={2026}
-    }
-
+Please cite our work as follows:
+```
+@misc{darshan2026gradientscollidefailuremodes,
+  title={When Gradients Collide: Failure Modes of Multi-Objective Prompt Optimization for LLM Judges}, 
+  author={Parth Darshan and Abhishek Divekar},
+  year={2026},
+  eprint={2605.26046},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL},
+  url={https://arxiv.org/abs/2605.26046}, 
+}
+```
 ---
 
 ## Contact
