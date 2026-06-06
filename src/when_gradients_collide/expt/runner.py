@@ -101,7 +101,7 @@ def _endpoint_with_limits(*, endpoint_id, api_key, max_calls_5h, max_calls_1w, b
             ],
             # Dollar budget reset every 5 hours.
             budget=[
-                CostLimit(budget_usd=budget_5h_usd, window=WINDOW_5H,
+                CostLimit(budget_usd=budget_5h_usd, window_seconds=WINDOW_5H,
                           algorithm=RateLimitAlgorithm.GCRA),
             ],
             # Cap on simultaneously in-flight requests on this key.
@@ -124,24 +124,24 @@ def build_balancing_pool_from_config(
     model_cfg = getattr(llm_config, role)
     model_name = model_cfg.name
 
-    # Build endpoints from the LLMConfig.endpoints dict
-    endpoints = []
+    # Extract API key from first endpoint and calculate total limits
+    api_key = None
+    total_max_rpm = 0
+    total_budget_usd = 0.0
+    
     for endpoint_id, endpoint in llm_config.endpoints.items():
         # Resolve API key (support ${ENV_VAR} template syntax)
-        api_key = endpoint.api_key
-        if api_key.startswith("${") and api_key.endswith("}"):
-            env_var = api_key[2:-1]
-            api_key = _require_env(env_var)
-        endpoints.append(
-            _endpoint_with_limits(
-                endpoint_id=endpoint.endpoint_id,
-                api_key=api_key,
-                max_calls_5h=endpoint.max_calls_5h,
-                max_calls_1w=endpoint.max_calls_1w,
-                budget_5h_usd=endpoint.budget_5h_usd,
-                max_concurrent=endpoint.max_concurrent,
-            )
-        )
+        key = endpoint.api_key
+        if key.startswith("${") and key.endswith("}"):
+            env_var = key[2:-1]
+            key = _require_env(env_var)
+        
+        if api_key is None:
+            api_key = key
+        
+        # Sum up rate limits across endpoints
+        total_max_rpm += endpoint.max_calls_5h // 5  # Convert 5h limit to per-minute
+        total_budget_usd += endpoint.budget_5h_usd
 
     litellm_params = {
         "extra_body": {"thinking": {"type": "disabled"}},
@@ -149,14 +149,16 @@ def build_balancing_pool_from_config(
 
     return create_llm(
         model=model_name,
-        api_base=llm_config.api_base,
-        endpoints=endpoints,
-        load_balancing=llm_config.load_balancing,
+        api_key=api_key,
+        max_rpm=total_max_rpm,
+        budget_usd=total_budget_usd,
+        window="hourly",
         litellm_params=litellm_params,
         max_tokens=max_tokens,
         timeout=timeout,
         temperature=temperature,
     )
+
 
 def _detect_reasoning_family(model_name: str) -> Optional[str]:
     """Detect the reasoning parameter family from the model name."""
@@ -918,8 +920,4 @@ class AlgorithmRunner(Worker):
                 "batch_size": batch_size,
                 "eval_every": eval_every,
                 "error": format_exception_msg(e),
-                **{
-                    **common_params,
-                    **algo_params,
-                },
             }

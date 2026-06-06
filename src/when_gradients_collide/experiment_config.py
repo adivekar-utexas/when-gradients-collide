@@ -182,8 +182,56 @@ def claude_preset() -> LLMConfig:
     )
 
 
+def openrouter_deepseek_preset() -> LLMConfig:
+    """DeepSeek V3 via OpenRouter (single API key). Uses fast chat model for all roles."""
+    return LLMConfig(
+        task_model=ModelConfig(
+            name="openrouter/deepseek/deepseek-chat-v3-0324",
+            max_tokens=4096,
+            temperature=0.1,
+            timeout=60.0,
+            reasoning=False,
+        ),
+        optimizer_model=ModelConfig(
+            name="openrouter/deepseek/deepseek-chat-v3-0324",
+            max_tokens=16384,
+            temperature=0.7,
+            timeout=600.0,
+            reasoning=False,
+        ),
+        gradient_model=ModelConfig(
+            name="openrouter/deepseek/deepseek-chat-v3-0324",
+            max_tokens=8192,
+            temperature=0.7,
+            timeout=600.0,
+            reasoning=False,
+        ),
+        loss_model=ModelConfig(
+            name="openrouter/deepseek/deepseek-chat-v3-0324",
+            max_tokens=1024,
+            temperature=0.7,
+            timeout=60.0,
+            reasoning=False,
+        ),
+        endpoints={
+            "endpoint_0": EndpointConfig(
+                endpoint_id="endpoint_0",
+                api_key="${OPENROUTER_API_KEY}",
+                max_calls_5h=10000,
+                max_calls_1w=50000,
+                budget_5h_usd=100.0,
+                max_concurrent=10,
+            ),
+        },
+        api_base=None,
+        load_balancing="RoundRobin",
+        endpoint_env_vars=["OPENROUTER_API_KEY"],
+    )
+
+
 # Registry of built-in presets
 LLM_PRESETS: Dict[str, LLMConfig] = {
     "deepseek": deepseek_preset(),
     "claude": claude_preset(),
+    "openrouter_deepseek": openrouter_deepseek_preset(),
 }

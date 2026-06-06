@@ -1,0 +1,96 @@
+{
+  "run_id": "20260606_164904",
+  "started_at": "2026-06-06T16:49:04.722541",
+  "config": {
+    "task_predictor": {
+      "name": "standard"
+    },
+    "loss_computer": {
+      "name": "textgrad"
+    },
+    "gradient_computer": {
+      "name": "textgrad"
+    },
+    "prompt_optimizer": {
+      "name": "textgrad"
+    },
+    "task_llm_temperature": 0.1,
+    "optimizer_llm_temperature": 0.7,
+    "gradient_llm_temperature": 0.7,
+    "loss_llm_temperature": 0.7,
+    "steps": 2,
+    "batch_size": 3,
+    "loss_batch_size": 1,
+    "gradient_batch_size": 1,
+    "eval_every": 1,
+    "eval_initial_prompt": true,
+    "eval_first_step": true,
+    "eval_last_step": true,
+    "name": "SummEval_textgrad_smoke_test",
+    "verbosity": 1,
+    "substep_delay": null,
+    "tasks": [
+      {
+        "task_name": "fluency",
+        "task_description": "Evaluate the fluency and readability of the summary",
+        "task_instruction": "Rate from 1 to 5.",
+        "gt_col": "fluency"
+      },
+      {
+        "task_name": "relevance",
+        "task_description": "Evaluate whether the summary captures the most important information from the source text",
+        "task_instruction": "Rate from 1 to 5.",
+        "gt_col": "relevance"
+      },
+      {
+        "task_name": "coherence",
+        "task_description": "Evaluate the logical structure and organization of the summary",
+        "task_instruction": "Rate from 1 to 5.",
+        "gt_col": "coherence"
+      },
+      {
+        "task_name": "consistency",
+        "task_description": "Evaluate whether the summary is factually consistent with the source text",
+        "task_instruction": "Rate from 1 to 5.",
+        "gt_col": "consistency"
+      }
+    ],
+    "num_task_demonstrations": 0,
+    "num_candidates": 1,
+    "use_fixed_training_batch": false,
+    "loss_task_strategy": "separate_tasks",
+    "gradient_task_strategy": "separate_tasks",
+    "optimizer_task_strategy": "combine_all_tasks",
+    "task_losses": {},
+    "validation_gate_samples": 100,
+    "validation_metric": "accuracy",
+    "algo_name": "TextGrad",
+    "initial_prompt": "You are a careful, calibrated evaluator. Your goal is to produce an accurate evaluation by following the Instructions below.\n\n## Task\nEvaluate the Summary given the Source Text using the Instructions below.\n1. Consider every strength and flaw you find when making your evaluation.\n2. Based on the number and severity of the strengths and flaws, assign a value.\nUse the Instructions below to perform your evaluation. Output a JSON with the requested scores. Do NOT include reasoning or explanations.\n\n## Output format (follow this EXACTLY):\n{\n  \"fluency\": 1|2|3|4|5,\n  \"relevance\": 1|2|3|4|5,\n  \"coherence\": 1|2|3|4|5,\n  \"consistency\": 1|2|3|4|5\n}\n\n## Instructions:\n- fluency: Rate from 1 to 5.\n- relevance: Rate from 1 to 5.\n- coherence: Rate from 1 to 5.\n- consistency: Rate from 1 to 5.\n",
+    "start_step": 0,
+    "llm_models": {
+      "optimizer_llm": "<function WorkerProxy.__getattr__.<locals>.method_wrapper at 0x169a0f7e0>",
+      "loss_llm": "<function WorkerProxy.__getattr__.<locals>.method_wrapper at 0x169a0f880>",
+      "gradient_llm": "<function WorkerProxy.__getattr__.<locals>.method_wrapper at 0x169a0fe20>",
+      "task_llm": "<function WorkerProxy.__getattr__.<locals>.method_wrapper at 0x169a0fec0>"
+    }
+  },
+  "completed_at": "2026-06-06T16:56:08.775611",
+  "total_steps": 3,
+  "steps_summary": [
+    {
+      "step": 0,
+      "timestamp": "2026-06-06T16:49:19.180665",
+      "has_evaluation": true
+    },
+    {
+      "step": 1,
+      "timestamp": "2026-06-06T16:51:42.067139",
+      "has_evaluation": true
+    },
+    {
+      "step": 2,
+      "timestamp": "2026-06-06T16:53:49.668042",
+      "has_evaluation": true
+    }
+  ]
+}
