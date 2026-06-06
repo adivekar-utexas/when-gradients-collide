@@ -157,7 +157,7 @@ Before running any experiment, make sure you have:
 
 1. Installed the package and its dependencies (see `INSTALL.md` for full instructions).
 2. Downloaded and prepared both datasets (SummEval and BRIGHTER) into `data/`. The `INSTALL.md` step `python scripts/setup_datasets.py` handles this automatically.
-3. Configured at least one API provider. Copy `.env.example` to `.env` and fill in the relevant keys. The default Qwen 3 model uses OpenRouter; other options include OpenAI, Anthropic, DeepSeek, or a local/self-hosted endpoint.
+3. Configured at least one API provider. Copy `.env.example` to `.env` and fill in the relevant keys. The default model (DeepSeek V3) uses OpenRouter; other options include OpenAI, Anthropic, DeepSeek, or a local/self-hosted endpoint.
 4. Verified the setup runs cleanly with `pytest tests/`.
 
 ## Environment Notes

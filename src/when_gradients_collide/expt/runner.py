@@ -51,7 +51,7 @@ from when_gradients_collide.algorithm import OPRO, TextGrad
 from when_gradients_collide.config import wgc_config
 from when_gradients_collide.data_input import Dataset
 from when_gradients_collide.data_structures import Task
-from when_gradients_collide.experiment_config import LLMConfig, LLM_PRESETS
+from when_gradients_collide.experiment_config import LLMConfig
 from when_gradients_collide.prompt_template import PromptTemplate
 from when_gradients_collide.task_predictor import parse_task_response
 
@@ -66,14 +66,6 @@ def parse_task_response_retry_until(result: str, **context) -> bool:
     
 WINDOW_5H = 5 * 3600
 WINDOW_1W = 7 * 86400
-
-
-# Legacy LLM_CONFIGS for backward compatibility - maps string names to LLMConfig instances
-# New code should use LLMConfig directly or pass llm_config parameter
-LLM_CONFIGS = {
-    "DeepSeek": LLM_PRESETS["deepseek"],
-    "claude4.6": LLM_PRESETS["claude"],
-}
 
 REASONING_EXTRA_TOKENS = 2000
 QWEN_NO_THINK_SUFFIX = "\n/no_think"
@@ -282,28 +274,13 @@ def _build_retry_config(*, cfg: Any) -> Dict[str, Any]:
 #         shared=True,
 #     )
 
-def _resolve_llm_config(llm: str) -> LLMConfig:
-    """Resolve a string LLM name to an LLMConfig instance.
-
-    Looks up in LLM_CONFIGS first (legacy names), then LLM_PRESETS (new names).
-    """
-    if llm in LLM_CONFIGS:
-        return LLM_CONFIGS[llm]
-    if llm in LLM_PRESETS:
-        return LLM_PRESETS[llm]
-    available = sorted(set(list(LLM_CONFIGS.keys()) + list(LLM_PRESETS.keys())))
-    raise ValueError(f"Unknown LLM: {llm}. Options: {available}")
-
-
 @validate
 def create_task_llm(
     *,
-    llm: str,
+    llm_config: LLMConfig,
     reasoning: bool = False,
     temperature: Optional[float] = None,
 ) -> Any:
-    llm_config = _resolve_llm_config(llm)
-
     cfg = wgc_config.defaults
     max_tokens = cfg.task_llm_max_tokens
     timeout = cfg.task_llm_timeout
@@ -332,11 +309,9 @@ def create_task_llm(
 @validate
 def create_optimizer_llm(
     *,
-    llm: str,
+    llm_config: LLMConfig,
     temperature: Optional[float] = None,
 ) -> Any:
-    llm_config = _resolve_llm_config(llm)
-
     cfg = wgc_config.defaults
     max_tokens = cfg.optimizer_llm_max_tokens
     timeout = cfg.optimizer_llm_timeout
@@ -365,11 +340,9 @@ def create_optimizer_llm(
 @validate
 def create_gradient_llm(
     *,
-    llm: str,
+    llm_config: LLMConfig,
     temperature: Optional[float] = None,
 ) -> Any:
-    llm_config = _resolve_llm_config(llm)
-
     cfg = wgc_config.defaults
     max_tokens = cfg.gradient_llm_max_tokens
     timeout = cfg.gradient_llm_timeout
@@ -398,11 +371,9 @@ def create_gradient_llm(
 @validate
 def create_loss_llm(
     *,
-    llm: str,
+    llm_config: LLMConfig,
     temperature: Optional[float] = None,
 ) -> Any:
-    llm_config = _resolve_llm_config(llm)
-
     cfg = wgc_config.defaults
     max_tokens = cfg.loss_llm_max_tokens
     timeout = cfg.loss_llm_timeout
@@ -750,12 +721,11 @@ class AlgorithmRunner(Worker):
         *,
         dataset: Dataset,
         algo_name: str,
-        api_key: str,
+        llm_config: LLMConfig,
         steps: int,
         batch_size: int,
         eval_every: int,
         run_name: str = "run1",
-        llm: str = "llama3.1",
         verbosity: int = 1,
         start_step: int = 0,
         resume_prompt: Optional[str] = None,
@@ -767,12 +737,11 @@ class AlgorithmRunner(Worker):
         Args:
             dataset: Dataset to run on.
             algo_name: Algorithm name ("opro", "textgrad").
-            api_key: API key for LLM service.
+            llm_config: Structured LLM configuration (loaded from JSON).
             steps: Number of training steps.
             batch_size: Batch size for training.
             eval_every: Evaluate every N steps.
             run_name: Name for this run.
-            llm: LLM family to use.
             verbosity: Logging verbosity (0=silent, 1=default, 2=detailed, 3=debug).
             start_step: Resume from this step.
             resume_prompt: Resume from this prompt content.
@@ -788,7 +757,7 @@ class AlgorithmRunner(Worker):
         """
         print(
             f"[AlgorithmRunner] Starting {algo_name} on {dataset.dataset_name} "
-            f"(run: {run_name}, llm: {llm})"
+            f"(run: {run_name})"
         )
 
         try:
@@ -828,19 +797,19 @@ class AlgorithmRunner(Worker):
                 return None
 
             task_llm = create_task_llm(
-                llm=llm,
+                llm_config=llm_config,
                 temperature=_resolve_temperature("task_llm_temperature"),
             )
             optimizer_llm = create_optimizer_llm(
-                llm=llm,
+                llm_config=llm_config,
                 temperature=_resolve_temperature("optimizer_llm_temperature"),
             )
             gradient_llm = create_gradient_llm(
-                llm=llm,
+                llm_config=llm_config,
                 temperature=_resolve_temperature("gradient_llm_temperature"),
             )
             loss_llm = create_loss_llm(
-                llm=llm,
+                llm_config=llm_config,
                 temperature=_resolve_temperature("loss_llm_temperature"),
             )
 
@@ -894,7 +863,7 @@ class AlgorithmRunner(Worker):
                 "dataset": dataset.dataset_name,
                 "algorithm": algo_name,
                 "run_name": run_name,
-                "llm": llm,
+                "llm_config": llm_config,
                 "steps": steps,
                 "batch_size": batch_size,
                 "eval_every": eval_every,
@@ -915,7 +884,7 @@ class AlgorithmRunner(Worker):
                 "dataset": dataset.dataset_name,
                 "algorithm": algo_name,
                 "run_name": run_name,
-                "llm": llm,
+                "llm_config": llm_config,
                 "steps": steps,
                 "batch_size": batch_size,
                 "eval_every": eval_every,

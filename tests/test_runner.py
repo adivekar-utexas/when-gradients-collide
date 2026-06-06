@@ -180,35 +180,39 @@ class TestTaskLosses:
 
 @pytest.mark.unit
 class TestLLMConfigs:
-    """Tests for LLM_CONFIGS dictionary."""
+    """Tests for LLMConfig validation (no API calls)."""
 
-    def test_llama_config_exists(self):
-        from runner import LLM_CONFIGS
+    def test_minimal_llm_config_is_valid(self):
+        from when_gradients_collide.experiment_config import LLMConfig
 
-        assert "llama3.1" in LLM_CONFIGS
-        assert "task_model" in LLM_CONFIGS["llama3.1"]
-        assert "loss_model" in LLM_CONFIGS["llama3.1"]
-        assert "gradient_model" in LLM_CONFIGS["llama3.1"]
-        assert "optimizer_model" in LLM_CONFIGS["llama3.1"]
+        cfg = LLMConfig(
+            task_model={"name": "openai/gpt-4o-mini"},
+            optimizer_model={"name": "openai/gpt-4o"},
+            gradient_model={"name": "openai/gpt-4o"},
+            loss_model={"name": "openai/gpt-4o-mini"},
+        )
+        assert cfg.task_model.name == "openai/gpt-4o-mini"
+        assert cfg.optimizer_model.name == "openai/gpt-4o"
+        assert cfg.gradient_model.name == "openai/gpt-4o"
+        assert cfg.loss_model.name == "openai/gpt-4o-mini"
+        assert cfg.endpoints == {}
+        assert cfg.api_base is None
 
-    def test_all_configs_have_required_keys(self):
-        from runner import LLM_CONFIGS
+    def test_all_model_configs_have_names(self):
+        from when_gradients_collide.experiment_config import LLMConfig
 
-        for name, config in LLM_CONFIGS.items():
-            assert "task_model" in config, f"{name} missing task_model"
-            assert "loss_model" in config, f"{name} missing loss_model"
-            assert "gradient_model" in config, f"{name} missing gradient_model"
-            assert "optimizer_model" in config, f"{name} missing optimizer_model"
-            assert "provider_order" in config, f"{name} missing provider_order"
-
-    def test_model_names_include_provider_prefix(self):
-        from runner import LLM_CONFIGS
-
-        for name, config in LLM_CONFIGS.items():
-            for key in ["task_model", "loss_model", "gradient_model", "optimizer_model"]:
-                assert "openai/" in config[key], (
-                    f"{name} {key} missing provider prefix: {config[key]}"
-                )
+        cfg = LLMConfig(
+            task_model={"name": "openai/gpt-4o-mini"},
+            optimizer_model={"name": "openai/gpt-4o"},
+            gradient_model={"name": "openai/gpt-4o"},
+            loss_model={"name": "openai/gpt-4o-mini"},
+        )
+        for role in ["task_model", "optimizer_model", "gradient_model", "loss_model"]:
+            model_cfg = getattr(cfg, role)
+            assert model_cfg.name, f"{role} missing name"
+            assert "/" in model_cfg.name, (
+                f"{role} name should include provider prefix: {model_cfg.name}"
+            )
 
 
 @pytest.mark.integration
@@ -217,34 +221,59 @@ class TestLLMCreation:
 
     def test_create_task_llm(self, api_key, shared_limits):
         from runner import create_task_llm
-        llm = create_task_llm(llm="llama3.1")
+        from when_gradients_collide.experiment_config import LLMConfig
+
+        llm_config = LLMConfig(
+            task_model={"name": "openai/gpt-4o-mini"},
+            optimizer_model={"name": "openai/gpt-4o-mini"},
+            gradient_model={"name": "openai/gpt-4o-mini"},
+            loss_model={"name": "openai/gpt-4o-mini"},
+        )
+        llm = create_task_llm(llm_config=llm_config)
         assert llm is not None
         llm.stop()
 
     def test_create_optimizer_llm(self, api_key, shared_limits):
         from runner import create_optimizer_llm
+        from when_gradients_collide.experiment_config import LLMConfig
 
-        llm = create_optimizer_llm(llm="llama3.1")
+        llm_config = LLMConfig(
+            task_model={"name": "openai/gpt-4o-mini"},
+            optimizer_model={"name": "openai/gpt-4o-mini"},
+            gradient_model={"name": "openai/gpt-4o-mini"},
+            loss_model={"name": "openai/gpt-4o-mini"},
+        )
+        llm = create_optimizer_llm(llm_config=llm_config)
         assert llm is not None
         llm.stop()
 
     def test_create_gradient_llm(self, api_key, shared_limits):
         from runner import create_gradient_llm
-        llm = create_gradient_llm(llm="llama3.1")
+        from when_gradients_collide.experiment_config import LLMConfig
+
+        llm_config = LLMConfig(
+            task_model={"name": "openai/gpt-4o-mini"},
+            optimizer_model={"name": "openai/gpt-4o-mini"},
+            gradient_model={"name": "openai/gpt-4o-mini"},
+            loss_model={"name": "openai/gpt-4o-mini"},
+        )
+        llm = create_gradient_llm(llm_config=llm_config)
         assert llm is not None
         llm.stop()
 
     def test_create_loss_llm(self, api_key, shared_limits):
         from runner import create_loss_llm
-        llm = create_loss_llm(llm="llama3.1")
+        from when_gradients_collide.experiment_config import LLMConfig
+
+        llm_config = LLMConfig(
+            task_model={"name": "openai/gpt-4o-mini"},
+            optimizer_model={"name": "openai/gpt-4o-mini"},
+            gradient_model={"name": "openai/gpt-4o-mini"},
+            loss_model={"name": "openai/gpt-4o-mini"},
+        )
+        llm = create_loss_llm(llm_config=llm_config)
         assert llm is not None
         llm.stop()
-
-    def test_unknown_llm_raises(self, api_key, shared_limits):
-        from runner import create_task_llm
-
-        with pytest.raises(ValueError, match="Unknown LLM"):
-            create_task_llm(llm="nonexistent-model")
 
 
 @pytest.mark.integration
@@ -254,13 +283,17 @@ class TestAlgorithmInstantiation:
     def test_opro_instantiation(self, api_key, shared_limits):
         from runner import create_task_llm, create_optimizer_llm, get_task_losses
         from when_gradients_collide.algorithm import OPRO
+        from when_gradients_collide.experiment_config import LLMConfig
 
-        task_llm = create_task_llm(
-            llm="llama3.1"
+        llm_config = LLMConfig(
+            task_model={"name": "openai/gpt-4o-mini"},
+            optimizer_model={"name": "openai/gpt-4o-mini"},
+            gradient_model={"name": "openai/gpt-4o-mini"},
+            loss_model={"name": "openai/gpt-4o-mini"},
         )
-        optimizer_llm = create_optimizer_llm(
-            llm="llama3.1"
-        )
+
+        task_llm = create_task_llm(llm_config=llm_config)
+        optimizer_llm = create_optimizer_llm(llm_config=llm_config)
         task_losses = get_task_losses(dataset=SUMMEVAL_DATASET, tasks=[FLUENCY_TASK])
 
         algo = OPRO(

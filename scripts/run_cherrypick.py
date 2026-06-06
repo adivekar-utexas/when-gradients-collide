@@ -35,7 +35,7 @@ DATE_PREFIX: str = "02Apr2026"
 BASE: str = os.path.join(os.path.dirname(__file__), "e2e_outputs", "unified")
 RUNS: List[int] = [1, 2, 3]
 MAX_STEP: int = 12
-LLM_FAMILY: str = "qwen3"
+LLM_CONFIG_PATH: str = "expt/configs/llm.json"
 
 
 def get_instruction_at_step(run_dir: str, step: int, task_name: str) -> Optional[str]:
@@ -149,14 +149,19 @@ def build_combined_prompt_and_evaluate(
     """Build a multi-task PromptTemplate from cherry-picked instructions and evaluate."""
     from dotenv import load_dotenv
     load_dotenv()
-    api_key: str = os.environ["OPENROUTER_API_KEY"]
 
     from runner import create_shared_limits, create_task_llm, get_initial_prompt
     from when_gradients_collide.config import temp_config
     from when_gradients_collide.data_structures import DatasetSample
+    from when_gradients_collide.experiment_config import load_config
     from when_gradients_collide.prompt_template import PromptTemplate
     from when_gradients_collide.task_predictor import parse_task_response
     from dataset import SummEval
+
+    # Load LLM config from JSON file
+    llm_config = load_config(
+        os.path.join(os.path.dirname(__file__), "..", LLM_CONFIG_PATH)
+    ).llm
 
     dataset: SummEval = SummEval(data_dir="data")
     tasks = dataset.tasks
@@ -196,7 +201,7 @@ def build_combined_prompt_and_evaluate(
     with temp_config(substep_delay=1.0, verbosity=1):
         shared_limits = create_shared_limits()
         task_llm = create_task_llm(
-            llm=LLM_FAMILY, api_key=api_key, limits=shared_limits,
+            llm_config=llm_config, limits=shared_limits,
         )
         try:
             test_df: pd.DataFrame = dataset.test()

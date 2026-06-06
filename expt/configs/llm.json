@@ -1,0 +1,43 @@
+{
+    "task_model": {
+        "name": "openrouter/deepseek/deepseek-chat-v3-0324",
+        "max_tokens": 4096,
+        "temperature": 0.1,
+        "timeout": 60.0,
+        "reasoning": false
+    },
+    "optimizer_model": {
+        "name": "openrouter/deepseek/deepseek-chat-v3-0324",
+        "max_tokens": 16384,
+        "temperature": 0.7,
+        "timeout": 600.0,
+        "reasoning": false
+    },
+    "gradient_model": {
+        "name": "openrouter/deepseek/deepseek-chat-v3-0324",
+        "max_tokens": 8192,
+        "temperature": 0.7,
+        "timeout": 600.0,
+        "reasoning": false
+    },
+    "loss_model": {
+        "name": "openrouter/deepseek/deepseek-chat-v3-0324",
+        "max_tokens": 1024,
+        "temperature": 0.7,
+        "timeout": 60.0,
+        "reasoning": false
+    },
+    "endpoints": {
+        "endpoint_0": {
+            "endpoint_id": "endpoint_0",
+            "api_key": "${OPENROUTER_API_KEY}",
+            "max_calls_5h": 10000,
+            "max_calls_1w": 50000,
+            "budget_5h_usd": 100.0,
+            "max_concurrent": 10
+        }
+    },
+    "api_base": null,
+    "load_balancing": "RoundRobin",
+    "endpoint_env_vars": ["OPENROUTER_API_KEY"]
+}

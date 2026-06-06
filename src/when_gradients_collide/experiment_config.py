@@ -1,28 +1,30 @@
 """Experiment configuration for prompt optimization.
 
-Inspired by pymc_model_selection/experiment_config.py pattern.
+All LLM configurations are loaded from JSON files on disk (via TypedPath),
+not hardcoded in Python.  See ``expt/configs/`` for examples.
 """
 
 from typing import Any, Dict, Optional
-from pydantic import Field
+
 from morphic import Typed
+from pydantic import Field
 
 
 class ModelConfig(Typed):
-    """LLM model configuration."""
+    """Per-role LLM configuration."""
 
     name: str = Field(description="LiteLLM model string")
     max_tokens: int = Field(default=4096, description="Max output tokens")
     temperature: float = Field(default=0.1, description="Sampling temperature")
-    timeout: float = Field(default=60.0, description="Request timeout in seconds")
+    timeout: float = Field(default=60.0, description="Request timeout (seconds)")
     reasoning: bool = Field(default=False, description="Enable reasoning mode")
 
 
 class EndpointConfig(Typed):
-    """API endpoint configuration with rate limits."""
+    """API endpoint with rate limits."""
 
     endpoint_id: str = Field(description="Endpoint identifier")
-    api_key: str = Field(description="API key for this endpoint")
+    api_key: str = Field(description="API key (supports ${ENV_VAR} template)")
     max_calls_5h: int = Field(default=1000, description="Max calls per 5 hours")
     max_calls_1w: int = Field(default=5000, description="Max calls per week")
     budget_5h_usd: float = Field(default=10.0, description="Budget per 5 hours in USD")
@@ -30,7 +32,7 @@ class EndpointConfig(Typed):
 
 
 class LLMConfig(Typed):
-    """Complete LLM configuration."""
+    """Complete LLM configuration — loadable from a JSON file via TypedPath."""
 
     task_model: ModelConfig = Field(description="Task LLM configuration")
     optimizer_model: ModelConfig = Field(description="Optimizer LLM configuration")
@@ -38,24 +40,26 @@ class LLMConfig(Typed):
     loss_model: ModelConfig = Field(description="Loss LLM configuration")
     endpoints: Dict[str, EndpointConfig] = Field(
         default_factory=dict,
-        description="Named endpoints for load balancing"
+        description="Named endpoints for load balancing",
     )
     api_base: Optional[str] = Field(
         default=None,
-        description="OpenAI-compatible API base URL (e.g. http://localhost:20128/v1)"
+        description="OpenAI-compatible API base URL",
     )
-    load_balancing: str = Field(
-        default="RoundRobin",
-        description="Load balancing strategy across endpoints"
-    )
+    load_balancing: str = Field(default="RoundRobin", description="Load balancing strategy")
     endpoint_env_vars: list = Field(
         default_factory=list,
-        description="Environment variable names holding API keys for endpoints"
+        description="Environment variable names holding API keys",
     )
 
 
 class ExperimentConfig(Typed):
-    """Experiment configuration."""
+    """Top-level experiment configuration.
+
+    The ``llm`` field can be either an inline LLMConfig (dict or instance)
+    or a string path to a JSON file.  ``load_config()`` resolves the path
+    automatically.  See ``expt/configs/`` for examples.
+    """
 
     llm: LLMConfig = Field(description="LLM configuration")
     dataset: str = Field(description="Dataset name (SummEval, BRIGHTER, etc.)")
@@ -68,170 +72,48 @@ class ExperimentConfig(Typed):
     verbosity: int = Field(default=1, description="Logging verbosity (0-3)")
 
 
-# ============================================================================
-# Built-in LLM Presets
-# ============================================================================
+def load_config(config_path: str) -> ExperimentConfig:
+    """Load an experiment config from a JSON file, resolving relative paths.
 
-def deepseek_preset() -> LLMConfig:
-    """DeepSeek preset: V4 Flash for tasks, V4 Pro for optimizer/gradient/loss."""
-    return LLMConfig(
-        task_model=ModelConfig(
-            name="openai/deepseek-v4-flash",
-            max_tokens=4096,
-            temperature=0.1,
-            timeout=60.0,
-            reasoning=False,
-        ),
-        optimizer_model=ModelConfig(
-            name="openai/deepseek-v4-pro",
-            max_tokens=16384,
-            temperature=0.7,
-            timeout=600.0,
-            reasoning=False,
-        ),
-        gradient_model=ModelConfig(
-            name="openai/deepseek-v4-pro",
-            max_tokens=8192,
-            temperature=0.7,
-            timeout=600.0,
-            reasoning=False,
-        ),
-        loss_model=ModelConfig(
-            name="openai/deepseek-v4-pro",
-            max_tokens=1024,
-            temperature=0.7,
-            timeout=60.0,
-            reasoning=False,
-        ),
-        endpoints={
-            "endpoint_0": EndpointConfig(
-                endpoint_id="endpoint_0",
-                api_key="${DEEPSEEK_API_KEY_0}",
-                max_calls_5h=5000,
-                max_calls_1w=20000,
-                budget_5h_usd=50.0,
-                max_concurrent=10,
-            ),
-            "endpoint_1": EndpointConfig(
-                endpoint_id="endpoint_1",
-                api_key="${DEEPSEEK_API_KEY_1}",
-                max_calls_5h=5000,
-                max_calls_1w=20000,
-                budget_5h_usd=50.0,
-                max_concurrent=10,
-            ),
-            "endpoint_2": EndpointConfig(
-                endpoint_id="endpoint_2",
-                api_key="${DEEPSEEK_API_KEY_2}",
-                max_calls_5h=5000,
-                max_calls_1w=20000,
-                budget_5h_usd=50.0,
-                max_concurrent=10,
-            ),
-        },
-        api_base=None,
-        load_balancing="RoundRobin",
-        endpoint_env_vars=["DEEPSEEK_API_KEY_0", "DEEPSEEK_API_KEY_1", "DEEPSEEK_API_KEY_2"],
-    )
+    The ``llm`` field in the experiment JSON can be either:
+    - a dict (inline LLM config), or
+    - a string path to another JSON file (relative to the experiment config's
+      directory, or absolute).
 
+    Returns:
+        A validated ExperimentConfig with the LLMConfig resolved and nested.
+    """
+    import json
+    from pathlib import Path
 
-def claude_preset() -> LLMConfig:
-    """Claude Sonnet 4.6 preset via local proxy."""
-    return LLMConfig(
-        task_model=ModelConfig(
-            name="openai/openrouter/anthropic/claude-sonnet-4.6",
-            max_tokens=4096,
-            temperature=0.1,
-            timeout=60.0,
-            reasoning=False,
-        ),
-        optimizer_model=ModelConfig(
-            name="openai/openrouter/anthropic/claude-sonnet-4.6",
-            max_tokens=16384,
-            temperature=0.7,
-            timeout=600.0,
-            reasoning=False,
-        ),
-        gradient_model=ModelConfig(
-            name="openai/openrouter/anthropic/claude-sonnet-4.6",
-            max_tokens=8192,
-            temperature=0.7,
-            timeout=600.0,
-            reasoning=False,
-        ),
-        loss_model=ModelConfig(
-            name="openai/openrouter/anthropic/claude-sonnet-4.6",
-            max_tokens=1024,
-            temperature=0.7,
-            timeout=60.0,
-            reasoning=False,
-        ),
-        endpoints={
-            "endpoint_0": EndpointConfig(
-                endpoint_id="endpoint_0",
-                api_key="${OPENROUTER_API_KEY_0}",
-                max_calls_5h=2000,
-                max_calls_1w=8000,
-                budget_5h_usd=100.0,
-                max_concurrent=5,
-            ),
-        },
-        api_base="http://localhost:20128/v1",
-        load_balancing="RoundRobin",
-        endpoint_env_vars=["OPENROUTER_API_KEY_0"],
-    )
+    config_path_obj = Path(config_path).resolve()
+    if not config_path_obj.is_file():
+        raise FileNotFoundError(
+            f"Experiment config file not found: {config_path_obj}"
+        )
 
+    with open(config_path_obj, "r") as f:
+        raw: Dict[str, Any] = json.load(f)
 
-def openrouter_deepseek_preset() -> LLMConfig:
-    """DeepSeek V3 via OpenRouter (single API key). Uses fast chat model for all roles."""
-    return LLMConfig(
-        task_model=ModelConfig(
-            name="openrouter/deepseek/deepseek-chat-v3-0324",
-            max_tokens=4096,
-            temperature=0.1,
-            timeout=60.0,
-            reasoning=False,
-        ),
-        optimizer_model=ModelConfig(
-            name="openrouter/deepseek/deepseek-chat-v3-0324",
-            max_tokens=16384,
-            temperature=0.7,
-            timeout=600.0,
-            reasoning=False,
-        ),
-        gradient_model=ModelConfig(
-            name="openrouter/deepseek/deepseek-chat-v3-0324",
-            max_tokens=8192,
-            temperature=0.7,
-            timeout=600.0,
-            reasoning=False,
-        ),
-        loss_model=ModelConfig(
-            name="openrouter/deepseek/deepseek-chat-v3-0324",
-            max_tokens=1024,
-            temperature=0.7,
-            timeout=60.0,
-            reasoning=False,
-        ),
-        endpoints={
-            "endpoint_0": EndpointConfig(
-                endpoint_id="endpoint_0",
-                api_key="${OPENROUTER_API_KEY}",
-                max_calls_5h=10000,
-                max_calls_1w=50000,
-                budget_5h_usd=100.0,
-                max_concurrent=10,
-            ),
-        },
-        api_base=None,
-        load_balancing="RoundRobin",
-        endpoint_env_vars=["OPENROUTER_API_KEY"],
-    )
+    base_dir: Path = config_path_obj.parent
 
+    llm_value: Any = raw.get("llm")
+    if isinstance(llm_value, str):
+        llm_path = Path(llm_value)
+        if not llm_path.is_absolute():
+            llm_path = (base_dir / llm_path).resolve()
+        if not llm_path.is_file():
+            raise FileNotFoundError(
+                f"LLM config file not found: {llm_path} "
+                f"(referenced by experiment config {config_path_obj})"
+            )
+        with open(llm_path, "r") as f:
+            llm_data: Dict[str, Any] = json.load(f)
+        raw["llm"] = llm_data
+    elif not isinstance(llm_value, dict):
+        raise ValueError(
+            f"Experiment config 'llm' field must be a dict or path string; "
+            f"got {type(llm_value).__name__}"
+        )
 
-# Registry of built-in presets
-LLM_PRESETS: Dict[str, LLMConfig] = {
-    "deepseek": deepseek_preset(),
-    "claude": claude_preset(),
-    "openrouter_deepseek": openrouter_deepseek_preset(),
-}
+    return ExperimentConfig(**raw)

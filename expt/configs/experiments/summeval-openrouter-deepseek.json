@@ -1,0 +1,11 @@
+{
+    "llm": "../llm.json",
+    "dataset": "SummEval",
+    "output_dir": "results/summeval-openrouter-deepseek",
+    "steps": 12,
+    "batch_size": 3,
+    "eval_every": 1,
+    "seed": 42,
+    "checkpoint_every": 1,
+    "verbosity": 1
+}

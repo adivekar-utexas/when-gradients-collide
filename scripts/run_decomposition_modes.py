@@ -29,7 +29,7 @@ METRIC_NAMES: List[str] = [
 
 STEPS: int = 12
 BATCH_SIZE: int = 3
-LLM_FAMILY: str = "qwen3"
+LLM_CONFIG_PATH: str = "expt/configs/llm.json"
 DATE_PREFIX: str = "02Apr2026"
 
 MODE_CONFIGS: Dict[str, Dict[str, str]] = {
@@ -94,7 +94,6 @@ def run_single(
     from dotenv import load_dotenv
 
     load_dotenv()
-    api_key: str = os.environ["OPENROUTER_API_KEY"]
 
     from runner import (
         create_gradient_llm,
@@ -106,8 +105,14 @@ def run_single(
     )
     from when_gradients_collide.algorithm import TextGrad
     from when_gradients_collide.config import temp_config
+    from when_gradients_collide.experiment_config import load_config
 
     from when_gradients_collide.expt import dataset as ds_module
+
+    # Load LLM config from JSON file
+    llm_config = load_config(
+        os.path.join(os.path.dirname(__file__), "..", LLM_CONFIG_PATH)
+    ).llm
 
     dataset_cls = getattr(ds_module, dataset_class_name)
     dataset = dataset_cls(data_dir="data")
@@ -123,16 +128,16 @@ def run_single(
         shared_limits = create_shared_limits()
 
         task_llm = create_task_llm(
-            llm=LLM_FAMILY, api_key=api_key, limits=shared_limits
+            llm_config=llm_config, limits=shared_limits,
         )
         optimizer_llm = create_optimizer_llm(
-            llm=LLM_FAMILY, api_key=api_key, limits=shared_limits
+            llm_config=llm_config, limits=shared_limits,
         )
         gradient_llm = create_gradient_llm(
-            llm=LLM_FAMILY, api_key=api_key, limits=shared_limits
+            llm_config=llm_config, limits=shared_limits,
         )
         loss_llm = create_loss_llm(
-            llm=LLM_FAMILY, api_key=api_key, limits=shared_limits
+            llm_config=llm_config, limits=shared_limits,
         )
 
         try:

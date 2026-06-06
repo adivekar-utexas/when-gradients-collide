@@ -33,6 +33,7 @@ venv/
 # Generated outputs (run locally or download from HuggingFace)
 outputs/
 results/
+smoke_test_output/
 data/SummEval/
 data/BRIGHTER/
 data/WildGuard/

@@ -117,10 +117,13 @@ when-gradients-collide/
 │   ├── make_main_results_table.py    #   Generate the main results table
 │   ├── plot_gradient_specificity.py  #   Specificity bar chart
 │   └── plot_trajectories.py          #   Interactive trajectory plots
+├── expt/configs/                     # JSON configuration files
+│   ├── llm.json                      #   LLM config (models, endpoints, rate limits)
+│   └── experiments/                  #   Experiment configs (LLM ref, dataset, steps)
 ├── src/when_gradients_collide/       # Main package
 │   ├── algorithm/                    #   TextGrad, OPRO
 │   ├── expt/                         #   runner, dataset, setup_datasets
-│   ├── experiment_config.py          #   Typed LLM config + presets
+│   ├── experiment_config.py          #   Typed config + load_config() JSON loader
 │   ├── config.py                     #   Global runtime configuration
 │   └── ...                           #   metrics, prompt template, observability, etc.
 ├── tests/                            # Unit tests
@@ -130,20 +133,48 @@ when-gradients-collide/
 
 ## Configuration
 
-LLM settings use a typed `ExperimentConfig` ([experiment_config.py](src/when_gradients_collide/experiment_config.py)) with built-in presets:
+LLM settings use JSON files loaded via `load_config()` ([experiment_config.py](src/when_gradients_collide/experiment_config.py)).
 
-```python
-from when_gradients_collide.experiment_config import ExperimentConfig, LLM_PRESETS
+**1. LLM config** (`expt/configs/llm.json`) — defines per-role models and endpoints:
 
-config = ExperimentConfig(
-    llm=LLM_PRESETS["deepseek"],  # or LLM_PRESETS["claude"]
-    dataset="SummEval",
-    steps=12,
-    batch_size=10,
-)
+```json
+{
+  "task_model": {"name": "openrouter/deepseek/deepseek-chat-v3-0324"},
+  "optimizer_model": {"name": "openrouter/deepseek/deepseek-chat-v3-0324"},
+  "gradient_model": {"name": "openrouter/deepseek/deepseek-chat-v3-0324"},
+  "loss_model": {"name": "openrouter/deepseek/deepseek-chat-v3-0324"},
+  "endpoints": {
+    "endpoint_0": {
+      "endpoint_id": "endpoint_0",
+      "api_key": "${OPENROUTER_API_KEY}",
+      "max_calls_5h": 10000,
+      "budget_5h_usd": 100.0
+    }
+  }
+}
 ```
 
-Each preset defines per-role models (`task_model`, `optimizer_model`, `gradient_model`, `loss_model`), rate-limited endpoints, and load balancing. Override any field with `model_copy(update=...)` or build a fully custom `LLMConfig`.
+**2. Experiment config** (`expt/configs/experiments/summeval-openrouter-deepseek.json`) — references the LLM config and adds experiment parameters:
+
+```json
+{
+  "llm": "../llm.json",
+  "dataset": "SummEval",
+  "steps": 12,
+  "batch_size": 3
+}
+```
+
+**3. Load in Python:**
+
+```python
+from when_gradients_collide.experiment_config import load_config
+
+config = load_config("expt/configs/experiments/summeval-openrouter-deepseek.json")
+# config.llm is a validated LLMConfig with all models and endpoints
+```
+
+To customize, copy an existing JSON config and edit it. No Python code changes needed.
 
 ## Citation
 
