@@ -1,6 +1,6 @@
 # Reproducing "When Gradients Collide"
 
-This guide walks through reproducing every numerical result in the ACL 2026 paper *"When Gradients Collide: Failure Modes of Multi-Objective Prompt Optimization for LLM Judges."* All experiments are fully scripted under `scripts/`. Each section below maps to a paper section, with the exact commands, expected outputs, and rough runtime.
+This guide walks through reproducing every numerical result in the ACL 2026 CustomNLP4U Workshop paper *"When Gradients Collide: Failure Modes of Multi-Objective Prompt Optimization for LLM Judges."* All experiments are fully scripted under `scripts/`. Each section below maps to a paper section, with the exact commands, expected outputs, and rough runtime.
 
 ## Overview
 

@@ -6,8 +6,10 @@
 
 **Parth Darshan &nbsp;&middot;&nbsp; Abhishek Divekar**
 
-*ACL 2026*
+*ACL 2026 - CustomNLP4U Workshop*
 
+[![Paper](https://img.shields.io/badge/Paper-PDF-b31b1b.svg)](https://arxiv.org/abs/2605.26046)
+[![arXiv](https://img.shields.io/badge/arXiv-2605.26046-b31b1b.svg)](https://arxiv.org/abs/2605.26046)
 [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Results-ffc107.svg)](https://huggingface.co/datasets/adivekar/when-gradients-collide-results)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
@@ -146,13 +148,15 @@ Each preset defines per-role models (`task_model`, `optimizer_model`, `gradient_
 ## Citation
 
 ```bibtex
-@inproceedings{darshan-divekar-2026-gradients,
-    title     = {When Gradients Collide: Failure Modes of Multi-Objective
-                 Prompt Optimization for {LLM} Judges},
-    author    = {Darshan, Parth and Divekar, Abhishek},
-    booktitle = {Proceedings of the 64th Annual Meeting of the Association
-                 for Computational Linguistics (ACL 2026)},
-    year      = {2026},
+@misc{darshan2026gradientscollidefailuremodes,
+      title={When Gradients Collide: Failure Modes of Multi-Objective
+             Prompt Optimization for {LLM} Judges},
+      author={Darshan, Parth and Divekar, Abhishek},
+      year={2026},
+      eprint={2605.26046},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2605.26046},
 }
 ```
 
