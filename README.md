@@ -8,7 +8,6 @@
 
 *ACL 2026 - CustomNLP4U Workshop*
 
-[![Paper](https://img.shields.io/badge/Paper-PDF-b31b1b.svg)](https://arxiv.org/abs/2605.26046)
 [![arXiv](https://img.shields.io/badge/arXiv-2605.26046-b31b1b.svg)](https://arxiv.org/abs/2605.26046)
 [![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Results-ffc107.svg)](https://huggingface.co/datasets/adivekar/when-gradients-collide-results)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
